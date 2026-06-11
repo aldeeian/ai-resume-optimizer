@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// User — mirror of the Clerk user. Clerk is the auth source of truth; this row
+// is created lazily on first authenticated request (see ensureUser()).
+// ─────────────────────────────────────────────────────────────────────────────
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String   @unique
+  firstName String?
+  lastName  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  resumes          Resume[]
+  jobDescriptions  JobDescription[]
+  generatedResumes GeneratedResume[]
+  applications     Application[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Resume — one uploaded master resume with extracted text and parsed sections.
+// Repeating sections (experiences, projects) are child tables so they can be
+// individually ranked and selected during optimization.
+// ─────────────────────────────────────────────────────────────────────────────
+model Resume {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  fileName  String
+  fileType  FileType
+  fileSize  Int
+  rawText   String
+  contact   Json // { name, email, phone, location, links[] }
+  summary   String?
+  education Json // [{ institution, degree, field, startDate, endDate, gpa, highlights[] }]
+  skills    String[]
+  isMaster  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experiences      Experience[]
+  projects         Project[]
+  generatedResumes GeneratedResume[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("resumes")
+}
+
+enum FileType {
+  PDF
+  DOCX
+  TXT
+}
+
+model Experience {
+  id        String   @id @default(cuid())
+  resumeId  String
+  company   String
+  title     String
+  location  String?
+  startDate String?
+  endDate   String?
+  current   Boolean  @default(false)
+  bullets   String[]
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@index([resumeId, order])
+  @@map("experiences")
+}
+
+model Project {
+  id           String   @id @default(cuid())
+  resumeId     String
+  name         String
+  description  String?
+  technologies String[]
+  url          String?
+  bullets      String[]
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@index([resumeId, order])
+  @@map("projects")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// JobDescription — a pasted posting plus its AI analysis. Analysis fields are
+// denormalized onto the row: immutable once analyzed, always read together.
+// ─────────────────────────────────────────────────────────────────────────────
+model JobDescription {
+  id               String   @id @default(cuid())
+  userId           String
+  title            String
+  company          String
+  seniority        String?
+  rawText          String
+  requiredSkills   String[]
+  preferredSkills  String[]
+  technologies     String[]
+  keywords         String[]
+  softSkills       String[]
+  responsibilities String[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generatedResumes GeneratedResume[]
+  applications     Application[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("job_descriptions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GeneratedResume — output of one optimization run: tailored content, ATS
+// score with breakdown, ranking results, and diff metadata for comparison.
+// ─────────────────────────────────────────────────────────────────────────────
+model GeneratedResume {
+  id                String   @id @default(cuid())
+  userId            String
+  resumeId          String
+  jobDescriptionId  String
+  content           Json // full tailored resume (same shape as parsed resume)
+  atsScore          Int
+  scoreBreakdown    Json // { keywordMatch, skillsMatch, experienceMatch, projectMatch, formatting }
+  experienceRanking Json // [{ id, score, reasoning, matchedSkills[] }]
+  projectRanking    Json // [{ id, score, matchedTechnologies[], matchedSkills[] }]
+  matchedSkills     String[]
+  missingSkills     String[]
+  addedKeywords     String[]
+  removedContent    String[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resume         Resume         @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  jobDescription JobDescription @relation(fields: [jobDescriptionId], references: [id], onDelete: Cascade)
+  applications   Application[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([resumeId])
+  @@index([jobDescriptionId])
+  @@map("generated_resumes")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Application — tracker row with per-stage timestamps.
+// ─────────────────────────────────────────────────────────────────────────────
+enum ApplicationStatus {
+  SAVED
+  APPLIED
+  INTERVIEWING
+  OFFER
+  REJECTED
+  WITHDRAWN
+}
+
+model Application {
+  id                String            @id @default(cuid())
+  userId            String
+  jobDescriptionId  String?
+  generatedResumeId String?
+  company           String
+  position          String
+  url               String?
+  status            ApplicationStatus @default(SAVED)
+  appliedAt         DateTime?
+  interviewAt       DateTime?
+  offerAt           DateTime?
+  rejectedAt        DateTime?
+  notes             String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobDescription  JobDescription?  @relation(fields: [jobDescriptionId], references: [id], onDelete: SetNull)
+  generatedResume GeneratedResume? @relation(fields: [generatedResumeId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([userId, appliedAt])
+  @@map("applications")
+}
