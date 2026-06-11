@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+
+# Env
+.env
+.env.local
+.env*.local
+
+# Build output
+.next/
+out/
+dist/
+build/
+
+# Prisma
+web/src/generated/
+
+# Misc
+.DS_Store
+*.log
+.turbo/
+coverage/
+.pytest_cache/
+.ruff_cache/
