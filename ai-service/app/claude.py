@@ -23,7 +23,13 @@ _client: anthropic.AsyncAnthropic | None = None
 def get_client() -> anthropic.AsyncAnthropic:
     global _client
     if _client is None:
-        _client = anthropic.AsyncAnthropic(api_key=get_settings().anthropic_api_key)
+        settings = get_settings()
+        if not settings.anthropic_api_key:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="ANTHROPIC_API_KEY is not set. Set it, or use LLM_PROVIDER=gemini.",
+            )
+        _client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
     return _client
 
 

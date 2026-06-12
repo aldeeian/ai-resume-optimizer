@@ -3,7 +3,7 @@ import logging
 
 from fastapi import Depends, FastAPI, HTTPException, status
 
-from app.claude import call_structured
+from app.llm import call_structured
 from app.prompts import (
     ANALYZE_JOB_SYSTEM,
     COVER_LETTER_SYSTEM,
