@@ -7,7 +7,7 @@ guarantees — this is the enforcement layer.
 
 import re
 
-from app.schemas import ParsedResume
+from app.schemas import BulletEvidence, ParsedResume
 
 
 def _norm(value: str) -> str:
@@ -64,6 +64,87 @@ def validate_generated_resume(source: ParsedResume, generated: ParsedResume) -> 
                 break
 
     return violations
+
+
+def validate_letter_numbers(source: ParsedResume, letter: str) -> list[str]:
+    """Cover letter check: every figure in the letter must exist in the resume.
+
+    Small word-counts the model naturally writes ("two projects") are not
+    digits, so this only catches fabricated metrics like "$2M" or "40%".
+    """
+    src_numbers = set(re.findall(r"\d[\d,.]*", _source_text(source)))
+    violations: list[str] = []
+    for number in re.findall(r"\d[\d,.]*", letter):
+        if number not in src_numbers:
+            violations.append(f"Invented figure '{number}' in the letter.")
+    return violations
+
+
+# ── Evidence verification ────────────────────────────────────────────────────
+
+# A quote shorter than this (normalized) is too weak to count as provenance.
+MIN_QUOTE_LENGTH = 10
+
+
+def verify_evidence(
+    source: ParsedResume,
+    generated: ParsedResume,
+    evidence: list[BulletEvidence],
+) -> tuple[list[BulletEvidence], list[str]]:
+    """Deterministically verify the model's claimed provenance.
+
+    A quote counts only if it appears verbatim (whitespace/case-insensitive)
+    in the source resume. Returns the evidence list with `verified` set, plus
+    human-readable refs for generated bullets that ended up with no verified
+    evidence (used to drive a corrective retry).
+    """
+    haystack = _norm(_source_text(source) + " " + " ".join(source.skills))
+
+    covered: set[tuple[str, int, int]] = set()
+    checked: list[BulletEvidence] = []
+    for item in evidence:
+        if not _evidence_target_exists(generated, item):
+            continue  # points at nothing — drop it
+        verified_sources = [
+            q for q in item.sources if len(_norm(q)) >= MIN_QUOTE_LENGTH and _norm(q) in haystack
+        ]
+        verified = len(verified_sources) > 0
+        checked.append(
+            BulletEvidence(
+                section=item.section,
+                entry_index=item.entry_index,
+                bullet_index=item.bullet_index,
+                sources=verified_sources if verified else item.sources,
+                verified=verified,
+            )
+        )
+        if verified:
+            covered.add((item.section, item.entry_index, item.bullet_index))
+
+    uncovered: list[str] = []
+    if generated.summary and ("summary", 0, 0) not in covered:
+        uncovered.append("summary")
+    for i, exp in enumerate(generated.experiences):
+        for j, bullet in enumerate(exp.bullets):
+            if ("experience", i, j) not in covered:
+                uncovered.append(
+                    f"experience[{i}] '{exp.company}' bullet {j + 1}: '{bullet[:60]}…'"
+                )
+    for i, project in enumerate(generated.projects):
+        for j, bullet in enumerate(project.bullets):
+            if ("project", i, j) not in covered:
+                uncovered.append(f"project[{i}] '{project.name}' bullet {j + 1}: '{bullet[:60]}…'")
+
+    return checked, uncovered
+
+
+def _evidence_target_exists(generated: ParsedResume, item: BulletEvidence) -> bool:
+    if item.section == "summary":
+        return bool(generated.summary)
+    entries = generated.experiences if item.section == "experience" else generated.projects
+    if item.entry_index >= len(entries):
+        return False
+    return item.bullet_index < len(entries[item.entry_index].bullets)
 
 
 def _all_bullets(resume: ParsedResume) -> list[str]:

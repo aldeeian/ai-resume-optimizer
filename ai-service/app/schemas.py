@@ -4,6 +4,8 @@ The wire format is camelCase (matching the TypeScript Zod schemas in the web
 app); Python attribute names stay snake_case via the alias generator.
 """
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
@@ -116,6 +118,107 @@ class RankResponse(CamelModel):
     projects: list[ProjectRankItem] = Field(default_factory=list)
 
 
+# ── Evidence (bullet provenance) ─────────────────────────────────────────────
+
+
+class BulletEvidence(CamelModel):
+    """Provenance for one generated bullet (or the summary).
+
+    `sources` are verbatim quotes from the source resume that justify the
+    generated text. `verified` is set server-side by deterministic substring
+    matching — the model never decides its own trustworthiness.
+    """
+
+    section: Literal["summary", "experience", "project"]
+    entry_index: int = Field(default=0, ge=0)
+    bullet_index: int = Field(default=0, ge=0)
+    sources: list[str] = Field(default_factory=list)
+    verified: bool = False
+
+
+class GeneratedWithEvidence(CamelModel):
+    """Tool output contract for /generate: tailored content plus provenance."""
+
+    content: ParsedResume
+    evidence: list[BulletEvidence] = Field(default_factory=list)
+
+
+# ── Cover letter ─────────────────────────────────────────────────────────────
+
+
+class CoverLetterRequest(CamelModel):
+    job: JobAnalysis
+    resume: ParsedResume
+    tone: Literal["professional", "enthusiastic", "concise"] = "professional"
+
+
+class CoverLetterDraft(CamelModel):
+    """Tool output contract for cover letter generation."""
+
+    content: str = Field(min_length=200)
+
+
+class CoverLetterResponse(CamelModel):
+    content: str
+
+
+# ── Mock interview ───────────────────────────────────────────────────────────
+
+
+class InterviewQuestionDraft(CamelModel):
+    """Tool output contract: the model proposes questions, the server ids them."""
+
+    type: Literal["behavioral", "technical", "resume"]
+    question: str
+    focus_area: str = ""
+
+
+class InterviewQuestionsDraft(CamelModel):
+    questions: list[InterviewQuestionDraft] = Field(default_factory=list)
+
+
+class InterviewQuestion(CamelModel):
+    id: str
+    type: Literal["behavioral", "technical", "resume"]
+    question: str
+    focus_area: str = ""
+
+
+class InterviewQuestionsRequest(CamelModel):
+    job: JobAnalysis
+    resume: ParsedResume
+    num_questions: int = Field(default=6, ge=3, le=10)
+
+
+class InterviewQuestionsResponse(CamelModel):
+    questions: list[InterviewQuestion] = Field(default_factory=list)
+
+
+class StarAnalysis(CamelModel):
+    """STAR-method coverage of a behavioral answer."""
+
+    situation: bool = False
+    task: bool = False
+    action: bool = False
+    result: bool = False
+    note: str = ""
+
+
+class InterviewFeedbackRequest(CamelModel):
+    job: JobAnalysis
+    question: InterviewQuestion
+    answer: str = Field(min_length=20, max_length=10_000)
+    resume: ParsedResume | None = None
+
+
+class InterviewFeedback(CamelModel):
+    score: int = Field(ge=0, le=100)
+    strengths: list[str] = Field(default_factory=list)
+    improvements: list[str] = Field(default_factory=list)
+    star: StarAnalysis | None = None
+    example_answer: str = ""
+
+
 # ── Requests / responses ─────────────────────────────────────────────────────
 
 
@@ -136,3 +239,4 @@ class GenerateRequest(CamelModel):
 
 class GenerateResponse(CamelModel):
     content: ParsedResume
+    evidence: list[BulletEvidence] = Field(default_factory=list)
