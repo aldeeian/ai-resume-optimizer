@@ -3,10 +3,17 @@ import "server-only";
 import { z } from "zod";
 
 import {
+  coverLetterResponseSchema,
   generateResponseSchema,
+  interviewFeedbackSchema,
+  interviewQuestionsResponseSchema,
   jobAnalysisSchema,
   parsedResumeSchema,
   rankResponseSchema,
+  type BulletEvidence,
+  type CoverLetterTone,
+  type InterviewFeedback,
+  type InterviewQuestion,
   type JobAnalysis,
   type ParsedResume,
   type RankResponse,
@@ -146,12 +153,48 @@ export async function rankAgainstJob(input: {
 export async function generateTailoredResume(input: {
   job: JobAnalysis;
   resume: ParsedResume;
-}): Promise<ParsedResume> {
+}): Promise<{ content: ParsedResume; evidence: BulletEvidence[] }> {
+  return postJson("/api/v1/generate", input, generateResponseSchema, GENERATE_TIMEOUT_MS);
+}
+
+export async function generateCoverLetterText(input: {
+  job: JobAnalysis;
+  resume: ParsedResume;
+  tone: CoverLetterTone;
+}): Promise<string> {
   const res = await postJson(
-    "/api/v1/generate",
+    "/api/v1/cover-letter",
     input,
-    generateResponseSchema,
+    coverLetterResponseSchema,
     GENERATE_TIMEOUT_MS
   );
   return res.content;
+}
+
+export async function fetchInterviewQuestions(input: {
+  job: JobAnalysis;
+  resume: ParsedResume;
+  numQuestions: number;
+}): Promise<InterviewQuestion[]> {
+  const res = await postJson(
+    "/api/v1/interview/questions",
+    input,
+    interviewQuestionsResponseSchema,
+    GENERATE_TIMEOUT_MS
+  );
+  return res.questions;
+}
+
+export async function fetchInterviewFeedback(input: {
+  job: JobAnalysis;
+  question: InterviewQuestion;
+  answer: string;
+  resume?: ParsedResume;
+}): Promise<InterviewFeedback> {
+  return postJson(
+    "/api/v1/interview/feedback",
+    input,
+    interviewFeedbackSchema,
+    GENERATE_TIMEOUT_MS
+  );
 }
