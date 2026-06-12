@@ -8,6 +8,7 @@ import {
   FileText,
   KanbanSquare,
   LayoutDashboard,
+  MessagesSquare,
   Settings,
   Sparkles,
   User,
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/jobs", label: "Job Descriptions", icon: FileSearch },
   { href: "/optimize", label: "Optimize", icon: Wand2 },
   { href: "/generated", label: "Generated Resumes", icon: Sparkles },
+  { href: "/interview", label: "Mock Interview", icon: MessagesSquare },
   { href: "/tracker", label: "Tracker", icon: KanbanSquare },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
 ] as const;

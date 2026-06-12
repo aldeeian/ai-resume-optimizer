@@ -1,13 +1,25 @@
 import { ExternalLink } from "lucide-react";
 
+import { EvidenceBullet, evidenceLookup } from "@/components/generated/evidence-bullet";
 import { SkillBadges } from "@/components/skill-badges";
 import { Separator } from "@/components/ui/separator";
-import type { ParsedResume } from "@/lib/schemas";
+import type { BulletEvidence, ParsedResume } from "@/lib/schemas";
 
-/** Read-only rendering of a structured resume (uploaded or generated). */
-export function ResumeView({ resume }: { resume: ParsedResume }) {
+/**
+ * Read-only rendering of a structured resume (uploaded or generated).
+ * When `evidence` is provided (generated resumes), every bullet renders its
+ * provenance badge linking it back to the master resume.
+ */
+export function ResumeView({
+  resume,
+  evidence,
+}: {
+  resume: ParsedResume;
+  evidence?: BulletEvidence[];
+}) {
   const { contact } = resume;
   const contactItems = [contact.email, contact.phone, contact.location].filter(Boolean);
+  const byLocation = evidence && evidence.length > 0 ? evidenceLookup(evidence) : null;
 
   return (
     <article className="space-y-6">
@@ -41,7 +53,13 @@ export function ResumeView({ resume }: { resume: ParsedResume }) {
             Summary
           </h3>
           <Separator className="my-2" />
-          <p className="text-sm leading-relaxed">{resume.summary}</p>
+          <p className="text-sm leading-relaxed">
+            {byLocation ? (
+              <EvidenceBullet text={resume.summary} evidence={byLocation.get("summary:0:0")} />
+            ) : (
+              resume.summary
+            )}
+          </p>
         </section>
       ) : null}
 
@@ -78,7 +96,16 @@ export function ResumeView({ resume }: { resume: ParsedResume }) {
                   </div>
                   <ul className="mt-1.5 list-disc space-y-1 pl-5 text-sm leading-relaxed">
                     {exp.bullets.map((bullet, j) => (
-                      <li key={j}>{bullet}</li>
+                      <li key={j}>
+                        {byLocation ? (
+                          <EvidenceBullet
+                            text={bullet}
+                            evidence={byLocation.get(`experience:${i}:${j}`)}
+                          />
+                        ) : (
+                          bullet
+                        )}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -110,7 +137,16 @@ export function ResumeView({ resume }: { resume: ParsedResume }) {
                 ) : null}
                 <ul className="mt-1.5 list-disc space-y-1 pl-5 text-sm leading-relaxed">
                   {project.bullets.map((bullet, j) => (
-                    <li key={j}>{bullet}</li>
+                    <li key={j}>
+                      {byLocation ? (
+                        <EvidenceBullet
+                          text={bullet}
+                          evidence={byLocation.get(`project:${i}:${j}`)}
+                        />
+                      ) : (
+                        bullet
+                      )}
+                    </li>
                   ))}
                 </ul>
               </div>
