@@ -46,6 +46,9 @@ const resume: ParsedResume = {
   ],
 };
 
+// Indexing is checked (noUncheckedIndexedAccess); the fixture always has one.
+const firstExperience = resume.experiences[0]!;
+
 const job: JobAnalysis = {
   title: "Backend Intern",
   company: "TechCo",
@@ -73,7 +76,7 @@ describe("resumeToPlainText", () => {
   it("renders 'Present' for current roles", () => {
     const current: ParsedResume = {
       ...resume,
-      experiences: [{ ...resume.experiences[0], current: true, endDate: "" }],
+      experiences: [{ ...firstExperience, current: true, endDate: "" }],
     };
     expect(resumeToPlainText(current)).toContain("May 2024 – Present");
   });
@@ -136,7 +139,7 @@ describe("computeAtsScore", () => {
       contact: { ...resume.contact, email: "not-an-email", phone: "" },
       experiences: [
         {
-          ...resume.experiences[0],
+          ...firstExperience,
           bullets: ["I personally did everything on my team and my manager loved it"],
         },
       ],
