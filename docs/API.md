@@ -62,7 +62,14 @@ ranked order — the service rewrites, it does not select.
 // request
 { "job": { /* JobAnalysis */ }, "resume": { /* ParsedResume (selected items only) */ } }
 // response 200
-{ "content": { /* ParsedResume, rewritten */ } }
+{
+  "content": { /* ParsedResume, rewritten */ },
+  "evidence": [
+    // provenance for the summary and every generated bullet
+    { "section": "experience", "entryIndex": 0, "bulletIndex": 1,
+      "sources": ["verbatim quote from the source resume"], "verified": true }
+  ]
+}
 ```
 
 **Truthfulness contract:** every company, title, date range, institution, project name,
@@ -71,6 +78,49 @@ skill, and numeric metric in `content` is cross-checked against the request resu
 called out, then returns **422** if the model still fabricated anything. Added
 keywords / removed content are computed deterministically in the web tier
 (`web/src/lib/ats/diff.ts`), not by the model.
+
+**Evidence contract:** the model must cite 1-3 verbatim source-resume quotes for the
+summary and each bullet it writes. The service verifies each quote deterministically
+(whitespace/case-insensitive substring match against the source resume) and sets
+`verified` itself — the model never grades its own citations. Bullets that end up
+without verified evidence trigger one corrective retry, then ship flagged
+`verified: false` (truthful-but-uncited is surfaced honestly, not rejected).
+
+### POST /api/v1/cover-letter
+```jsonc
+// request — tone: "professional" | "enthusiastic" | "concise"
+{ "job": { /* JobAnalysis */ }, "resume": { /* ParsedResume */ }, "tone": "professional" }
+// response 200
+{ "content": "Dear Hiring Manager,\n\n..." }
+```
+Every numeric figure in the letter must already exist in the resume; one corrective
+retry, then **422** if figures are still fabricated.
+
+### POST /api/v1/interview/questions
+```jsonc
+// request
+{ "job": { /* JobAnalysis */ }, "resume": { /* ParsedResume */ }, "numQuestions": 6 }
+// response 200 — ids are assigned by the server (q1..qN), never by the model
+{ "questions": [
+  { "id": "q1", "type": "behavioral", "question": "...", "focusArea": "collaboration" }
+] }
+```
+`type` mix is ~40% behavioral / ~40% technical / ~20% resume-specific probes, all
+grounded in the actual posting and the actual resume.
+
+### POST /api/v1/interview/feedback
+```jsonc
+// request
+{ "job": { /* JobAnalysis */ },
+  "question": { "id": "q1", "type": "behavioral", "question": "...", "focusArea": "" },
+  "answer": "candidate's answer (min 20 chars)",
+  "resume": { /* ParsedResume, optional — grounds the example answer */ } }
+// response 200
+{ "score": 74, "strengths": [], "improvements": [],
+  "star": { "situation": true, "task": true, "action": true, "result": false, "note": "" },
+  "exampleAnswer": "" }
+```
+`star` is returned only for behavioral questions (stripped server-side otherwise).
 
 ### GET /health
 Unauthenticated liveness probe → `{ "status": "ok" }`.
@@ -87,6 +137,8 @@ by `userId` → returns `ActionResult<T>` (`{ ok: true, data } | { ok: false, er
 | `analyzeJob` / `deleteJob` | `jobs.ts` | JD text → analysis → persist |
 | `optimizeResume` / `deleteGeneratedResume` | `optimize.ts` | rank → gap → generate → score → diff → persist |
 | `createApplication` / `updateApplication` / `updateApplicationStatus` / `deleteApplication` | `applications.ts` | tracker CRUD with stage timestamps |
+| `generateCoverLetter` / `deleteCoverLetter` | `cover-letters.ts` | tailored letter from a generated resume |
+| `startInterview` / `submitInterviewAnswer` / `deleteInterviewSession` | `interviews.ts` | mock interview lifecycle (question set → per-answer feedback → overall score) |
 | `updateProfile` / `deleteAllUserData` | `profile.ts` | profile + data wipe |
 
 ## 3. web — Route Handlers (REST)

@@ -11,8 +11,13 @@ User 1───* Resume 1───* Experience
   ├─────────* JobDescription
   ├─────────* GeneratedResume *───1 Resume
   │                           *───1 JobDescription
-  └─────────* Application ?───1 JobDescription
-                          ?───1 GeneratedResume
+  ├─────────* Application ?───1 JobDescription
+  │                       ?───1 GeneratedResume
+  ├─────────* CoverLetter 1───1 JobDescription
+  │                       ?───1 GeneratedResume
+  └─────────* InterviewSession 1───1 JobDescription
+                               ?───1 GeneratedResume
+                               ?───1 Resume
 ```
 
 ## Models
@@ -40,9 +45,22 @@ onto the row because they are immutable once analyzed and always read together.
 ### GeneratedResume
 The output of one optimization run: the full tailored resume as structured JSON
 (`content`), the ATS `atsScore` + `scoreBreakdown` JSON, ranking results
-(`experienceRanking`, `projectRanking` JSON), and diff metadata (`addedKeywords`,
-`removedContent`, `matchedSkills`, `missingSkills` text[]). Links back to both the
-source Resume and the JobDescription.
+(`experienceRanking`, `projectRanking` JSON), diff metadata (`addedKeywords`,
+`removedContent`, `matchedSkills`, `missingSkills` text[]), and per-bullet provenance
+(`evidence` JSON: section/index refs plus verbatim source quotes with a server-set
+`verified` flag). Links back to both the source Resume and the JobDescription.
+
+### CoverLetter
+One generated letter (`content` text, `tone`). Belongs to a JobDescription (cascade)
+and optionally the GeneratedResume it was written alongside (`SetNull` so letters
+survive resume regeneration).
+
+### InterviewSession
+One mock interview. `questions` JSON is the AI-generated set (id/type/question/
+focusArea); `answers` JSON accumulates `{ questionId, answer, feedback }` as the user
+progresses. `status` (`IN_PROGRESS → COMPLETED`) flips when the last question is
+answered and `overallScore` is set to the average. Optional links to the
+GeneratedResume and source Resume used for grounding (`SetNull`).
 
 ### Application
 Tracker row. `status` is the `ApplicationStatus` enum
@@ -66,7 +84,9 @@ A denormalized analytics table was deliberately avoided — see ARCHITECTURE.md 
 | JobDescription | `@@index([userId, createdAt])` | history list |
 | GeneratedResume | `@@index([userId, createdAt])`, `@@index([resumeId])`, `@@index([jobDescriptionId])` | lists + joins |
 | Application | `@@index([userId, status])`, `@@index([userId, appliedAt])` | tracker board + analytics |
-| all FKs | `onDelete: Cascade` | account/resume deletion integrity |
+| CoverLetter | `@@index([userId, createdAt])`, `@@index([generatedResumeId])` | history list + per-resume letters |
+| InterviewSession | `@@index([userId, createdAt])` | session list |
+| all FKs | `onDelete: Cascade` (or `SetNull` for optional GeneratedResume/Resume links) | account/resume deletion integrity |
 | all tables | `createdAt` / `updatedAt` timestamps | auditing |
 
 ## Migrations

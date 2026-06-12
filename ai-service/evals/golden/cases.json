@@ -1,0 +1,46 @@
+[
+  {
+    "name": "swe_intern_resume",
+    "resume_text": "JORDAN LEE\njordan.lee@example.com | 403-555-0142 | Calgary, AB | github.com/jordanlee\n\nSUMMARY\nThird-year computer science student interested in backend development and distributed systems.\n\nEDUCATION\nUniversity of Calgary — BSc Computer Science, Sep 2022 - Apr 2026, GPA 3.6\n\nSKILLS\nLanguages: Python, TypeScript, Go\nFrameworks: FastAPI, React, Node.js\nTools: PostgreSQL, Docker, Git\n\nEXPERIENCE\nSoftware Developer Intern — Northstar Logistics, Calgary, AB, May 2024 - Aug 2024\n- Built shipment-tracking REST endpoints in FastAPI handling 50,000 requests per day\n- Cut dashboard load time by 35% by adding PostgreSQL indexes and query caching\n- Wrote integration tests in pytest raising coverage from 41% to 78%\n\nPROJECTS\nCampus Marketplace (TypeScript, React, Node.js, PostgreSQL)\n- Built a second-hand marketplace used by 300 students with listings, chat, and payments\n- Deployed on a Docker-based pipeline with automated database migrations",
+    "expected": {
+      "name": "Jordan Lee",
+      "companies": ["Northstar Logistics"],
+      "institutions": ["University of Calgary"],
+      "skills": ["Python", "TypeScript", "Go", "FastAPI", "React", "Node.js", "PostgreSQL", "Docker", "Git"],
+      "project_names": ["Campus Marketplace"]
+    },
+    "job": {
+      "title": "Backend Developer Intern",
+      "company": "Streamline Software",
+      "seniority": "internship",
+      "requiredSkills": ["Python", "PostgreSQL", "REST APIs"],
+      "preferredSkills": ["Docker", "FastAPI"],
+      "technologies": ["Python", "FastAPI", "PostgreSQL", "Docker"],
+      "keywords": ["REST", "backend", "API development", "testing", "performance"],
+      "softSkills": ["communication", "collaboration"],
+      "responsibilities": ["Build and maintain REST APIs", "Optimize database queries", "Write automated tests"]
+    }
+  },
+  {
+    "name": "data_science_resume",
+    "resume_text": "PRIYA NAIR\npriya.nair@example.com | 587-555-0177 | Edmonton, AB\n\nEDUCATION\nUniversity of Alberta — BSc Computing Science, 2021 - 2025, GPA 3.8\nDean's Honor Roll 2023\n\nSKILLS\nPython, SQL, pandas, scikit-learn, PyTorch, Tableau, AWS\n\nEXPERIENCE\nData Analyst Intern — Prairie Health Group, Edmonton, AB, May 2023 - Aug 2023\n- Automated weekly reporting in Python and SQL, saving 12 hours of manual work per week\n- Built patient no-show prediction model in scikit-learn reaching 0.81 AUC\n\nMachine Learning Research Assistant — University of Alberta, Sep 2023 - Apr 2024\n- Trained PyTorch models for medical image segmentation on a 40,000-image dataset\n- Co-authored a workshop paper on data augmentation strategies\n\nPROJECTS\nTransit Delay Predictor (Python, pandas, scikit-learn)\n- Forecast bus delays using 2 million GPS records with gradient boosting, MAE of 1.4 minutes",
+    "expected": {
+      "name": "Priya Nair",
+      "companies": ["Prairie Health Group", "University of Alberta"],
+      "institutions": ["University of Alberta"],
+      "skills": ["Python", "SQL", "pandas", "scikit-learn", "PyTorch", "Tableau", "AWS"],
+      "project_names": ["Transit Delay Predictor"]
+    },
+    "job": {
+      "title": "Machine Learning Intern",
+      "company": "Aurora Analytics",
+      "seniority": "internship",
+      "requiredSkills": ["Python", "machine learning", "SQL"],
+      "preferredSkills": ["PyTorch", "AWS"],
+      "technologies": ["Python", "PyTorch", "scikit-learn", "SQL", "AWS"],
+      "keywords": ["machine learning", "model training", "data pipelines", "prediction", "evaluation"],
+      "softSkills": ["communication"],
+      "responsibilities": ["Train and evaluate ML models", "Build data pipelines", "Present findings"]
+    }
+  }
+]

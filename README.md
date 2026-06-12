@@ -1,12 +1,17 @@
 # AI Resume Optimizer
 
+[![CI](https://github.com/aldeeian/ai-resume-optimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/aldeeian/ai-resume-optimizer/actions/workflows/ci.yml)
+
 A SaaS-style web application that helps students tailor their master resume to specific
-job descriptions — truthfully and in an ATS-compliant way.
+job descriptions — truthfully and in an ATS-compliant way — then practice interviewing
+for those exact jobs.
 
 Upload a master resume, paste a job description, and the system analyzes the posting,
 ranks your experiences and projects by relevance, flags missing skills, generates a
-keyword-optimized tailored resume (no fabricated experience), scores it against the job,
-and tracks your applications.
+keyword-optimized tailored resume (no fabricated experience — **every bullet cites the
+verbatim master-resume text it was built from**), scores it against the job, writes a
+matching cover letter, runs a mock interview with STAR-rubric coaching, and tracks
+your applications.
 
 ## Monorepo Layout
 
@@ -33,6 +38,10 @@ and tracks your applications.
 | 10 | Application tracker | `web` (Server Actions + React Query) |
 | 11 | Analytics dashboard (charts) | `web` (Recharts) |
 | 12 | Export PDF / DOCX / TXT | `web` route handlers |
+| 13 | **Evidence-linked bullets** — every generated bullet cites verbatim source-resume quotes, verified deterministically server-side | `ai-service` `/generate` + provenance UI |
+| 14 | **Cover letter generator** (tone control, no invented figures) | `ai-service` `/cover-letter` + `web` |
+| 15 | **AI mock interview** — JD+resume-specific questions, per-answer scoring with STAR analysis and coaching feedback | `ai-service` `/interview/*` + `web` |
+| 16 | Tests + CI + LLM evals (pytest, vitest, GitHub Actions, golden-set eval harness) | repo-wide |
 
 ## Quick Start
 
@@ -69,6 +78,23 @@ npm run dev
 ```
 
 Open http://localhost:3000.
+
+## Tests & Quality
+
+```bash
+# web: typecheck + unit tests (ATS engine, diff, schema contracts)
+cd web && npm run typecheck && npm run test
+
+# ai-service: lint + unit tests (truthfulness, evidence verification, endpoints with the LLM mocked)
+cd ai-service && pip install -r requirements-dev.txt && ruff check app tests evals && pytest
+
+# live LLM evals (real API calls; needs ANTHROPIC_API_KEY) — parse fidelity + evidence coverage
+cd ai-service && python -m evals.run_evals
+```
+
+CI (GitHub Actions) runs lint, typecheck, both test suites, and a production build on
+every push and pull request. The eval workflow is manual (Actions → "LLM evals") since
+it spends real API tokens.
 
 ## Deployment
 

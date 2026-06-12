@@ -1,0 +1,32 @@
+name: LLM evals
+
+# Live model-quality evals (real Anthropic API calls, costs money) —
+# triggered manually from the Actions tab. Requires the ANTHROPIC_API_KEY
+# repository secret.
+on:
+  workflow_dispatch:
+
+jobs:
+  evals:
+    name: Golden-set evals (parse fidelity, evidence coverage)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-service
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      AI_SERVICE_API_KEY: eval-run
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ai-service/requirements-dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run evals
+        run: python -m evals.run_evals

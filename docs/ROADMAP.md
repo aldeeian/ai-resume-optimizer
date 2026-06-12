@@ -36,9 +36,20 @@
 - Loading skeletons, empty states, error boundaries
 - Deployment configs (Vercel, Railway, Docker)
 
+## Phase 7 — Differentiators & Engineering Rigor ✅
+- Evidence-linked generation: every tailored bullet cites verbatim source-resume
+  quotes, deterministically verified server-side and surfaced in the UI
+- Cover letter generation (tone control, invented-figure validation)
+- AI mock interview: JD+resume-specific question sets, STAR-rubric answer
+  scoring with coaching feedback, session history with overall scores
+- Test suites: pytest (ai-service, LLM mocked) + vitest (ATS/diff/schema logic)
+- GitHub Actions CI (lint, typecheck, tests, production build)
+- Live LLM eval harness with golden cases (parse fidelity, evidence coverage),
+  manual workflow
+
 ## Post-MVP (next)
-- Cover letter generation
 - Chrome extension to capture postings
 - Multiple resume templates
+- Voice-mode mock interviews (speech-to-text answers)
 - Team/career-center accounts
 - Webhook sync of Clerk user deletions
