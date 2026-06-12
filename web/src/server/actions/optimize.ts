@@ -156,7 +156,10 @@ export async function optimizeResume(input: {
       })),
     };
 
-    const generated = await generateTailoredResume({ job, resume: sourceResume });
+    const { content: generated, evidence } = await generateTailoredResume({
+      job,
+      resume: sourceResume,
+    });
 
     // ── 5. Deterministic ATS score ─────────────────────────────────────────
     const { total, breakdown } = computeAtsScore({
@@ -234,6 +237,7 @@ export async function optimizeResume(input: {
         missingSkills: gap.missing,
         addedKeywords,
         removedContent,
+        evidence,
       },
     });
 

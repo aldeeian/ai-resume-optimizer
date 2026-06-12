@@ -82,8 +82,64 @@ export const rankResponseSchema = z.object({
   projects: z.array(projectRankItemSchema).default([]),
 });
 
+// Provenance for one generated bullet (or the summary): verbatim quotes from
+// the source resume, with `verified` set by the ai-service's deterministic
+// substring check — never by the model itself.
+export const bulletEvidenceSchema = z.object({
+  section: z.enum(["summary", "experience", "project"]),
+  entryIndex: z.number().int().min(0).default(0),
+  bulletIndex: z.number().int().min(0).default(0),
+  sources: z.array(z.string()).default([]),
+  verified: z.boolean().default(false),
+});
+
 export const generateResponseSchema = z.object({
   content: parsedResumeSchema,
+  evidence: z.array(bulletEvidenceSchema).default([]),
+});
+
+// ── Cover letters ────────────────────────────────────────────────────────────
+
+export const coverLetterToneSchema = z.enum(["professional", "enthusiastic", "concise"]);
+
+export const coverLetterResponseSchema = z.object({
+  content: z.string(),
+});
+
+// ── Mock interview ───────────────────────────────────────────────────────────
+
+export const interviewQuestionSchema = z.object({
+  id: z.string(),
+  type: z.enum(["behavioral", "technical", "resume"]),
+  question: z.string(),
+  focusArea: z.string().default(""),
+});
+
+export const interviewQuestionsResponseSchema = z.object({
+  questions: z.array(interviewQuestionSchema).default([]),
+});
+
+export const starAnalysisSchema = z.object({
+  situation: z.boolean().default(false),
+  task: z.boolean().default(false),
+  action: z.boolean().default(false),
+  result: z.boolean().default(false),
+  note: z.string().default(""),
+});
+
+export const interviewFeedbackSchema = z.object({
+  score: z.number().min(0).max(100),
+  strengths: z.array(z.string()).default([]),
+  improvements: z.array(z.string()).default([]),
+  star: starAnalysisSchema.nullable().default(null),
+  exampleAnswer: z.string().default(""),
+});
+
+// One answered question as persisted on InterviewSession.answers.
+export const interviewAnswerSchema = z.object({
+  questionId: z.string(),
+  answer: z.string(),
+  feedback: interviewFeedbackSchema,
 });
 
 // Ranking entries as persisted on GeneratedResume (enriched with display name
@@ -106,6 +162,12 @@ export const scoreBreakdownSchema = z.object({
   formatting: z.object({ score: z.number(), max: z.number(), detail: z.string() }),
 });
 
+export type BulletEvidence = z.infer<typeof bulletEvidenceSchema>;
+export type CoverLetterTone = z.infer<typeof coverLetterToneSchema>;
+export type InterviewQuestion = z.infer<typeof interviewQuestionSchema>;
+export type StarAnalysis = z.infer<typeof starAnalysisSchema>;
+export type InterviewFeedback = z.infer<typeof interviewFeedbackSchema>;
+export type InterviewAnswer = z.infer<typeof interviewAnswerSchema>;
 export type ContactInfo = z.infer<typeof contactInfoSchema>;
 export type EducationEntry = z.infer<typeof educationEntrySchema>;
 export type ParsedExperience = z.infer<typeof parsedExperienceSchema>;
@@ -167,6 +229,34 @@ export const updateApplicationSchema = createApplicationSchema.partial().extend(
 export const updateProfileSchema = z.object({
   firstName: z.string().trim().max(100).optional(),
   lastName: z.string().trim().max(100).optional(),
+});
+
+export const generateCoverLetterInputSchema = z.object({
+  generatedResumeId: z.string().min(1, "Choose a generated resume."),
+  tone: coverLetterToneSchema.default("professional"),
+});
+
+// Start from a generated resume (carries job + tailored content), or from a
+// job description + master resume pair.
+export const startInterviewInputSchema = z
+  .object({
+    generatedResumeId: z.string().optional(),
+    jobDescriptionId: z.string().optional(),
+    resumeId: z.string().optional(),
+    numQuestions: z.number().int().min(3).max(10).default(6),
+  })
+  .refine((v) => v.generatedResumeId || (v.jobDescriptionId && v.resumeId), {
+    message: "Choose a generated resume, or a job description and a resume.",
+  });
+
+export const submitInterviewAnswerSchema = z.object({
+  sessionId: z.string().min(1),
+  questionId: z.string().min(1),
+  answer: z
+    .string()
+    .trim()
+    .min(20, "Give a fuller answer — at least a few sentences.")
+    .max(10_000, "Answer is too long (10,000 character max)."),
 });
 
 export type ApplicationStatusValue = z.infer<typeof applicationStatusSchema>;
