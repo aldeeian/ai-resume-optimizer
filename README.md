@@ -18,7 +18,7 @@ your applications.
 ```
 .
 ├── web/          Next.js 15 (App Router, TypeScript, Tailwind, shadcn/ui, Prisma, Clerk)
-├── ai-service/   FastAPI microservice (Python 3.12, Anthropic Claude API)
+├── ai-service/   FastAPI microservice (Python 3.12, pluggable LLM: Claude default / Gemini free tier)
 └── docs/         Architecture, database design, API contracts, roadmap
 ```
 
@@ -49,7 +49,9 @@ your applications.
 
 - Node.js ≥ 20, Python ≥ 3.12, PostgreSQL ≥ 15
 - A [Clerk](https://clerk.com) application (publishable + secret key)
-- An [Anthropic](https://console.anthropic.com) API key
+- An LLM API key — either [Anthropic](https://console.anthropic.com) (default) or
+  [Gemini](https://aistudio.google.com/apikey) (free tier: set `LLM_PROVIDER=gemini`
+  and `GEMINI_API_KEY` in `ai-service/.env`)
 
 ### 1. Database
 
@@ -63,7 +65,7 @@ createdb resume_optimizer        # or use Railway/Neon/Supabase Postgres
 cd ai-service
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env             # set ANTHROPIC_API_KEY and AI_SERVICE_API_KEY
+cp .env.example .env             # set AI_SERVICE_API_KEY + your LLM provider key
 uvicorn app.main:app --reload --port 8000
 ```
 
