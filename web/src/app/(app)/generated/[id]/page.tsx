@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { GitCompareArrows, KanbanSquare } from "lucide-react";
+import { GitCompareArrows, KanbanSquare, Mail } from "lucide-react";
 import { z } from "zod";
 
 import { ExportMenu } from "@/components/generated/export-menu";
@@ -10,12 +10,14 @@ import {
   ProjectRankingList,
 } from "@/components/generated/ranking-list";
 import { ScoreCard } from "@/components/generated/score-card";
+import { PracticeInterviewButton } from "@/components/interview/practice-button";
 import { PageHeader } from "@/components/page-header";
 import { ResumeView } from "@/components/resume/resume-view";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
 import {
+  bulletEvidenceSchema,
   parsedResumeSchema,
   scoreBreakdownSchema,
   storedExperienceRankSchema,
@@ -45,6 +47,7 @@ export default async function GeneratedDetailPage({
   if (!generated) notFound();
 
   const content = parsedResumeSchema.parse(generated.content);
+  const evidence = z.array(bulletEvidenceSchema).parse(generated.evidence ?? []);
   const breakdown = scoreBreakdownSchema.parse(generated.scoreBreakdown);
   const experienceRanking = z
     .array(storedExperienceRankSchema)
@@ -65,6 +68,12 @@ export default async function GeneratedDetailPage({
                 <GitCompareArrows aria-hidden /> Compare
               </Link>
             </Button>
+            <Button variant="outline" asChild>
+              <Link href={`/generated/${generated.id}/cover-letter`}>
+                <Mail aria-hidden /> Cover letter
+              </Link>
+            </Button>
+            <PracticeInterviewButton generatedResumeId={generated.id} />
             <Button variant="outline" asChild>
               <Link
                 href={`/tracker?company=${encodeURIComponent(generated.jobDescription.company)}&position=${encodeURIComponent(generated.jobDescription.title)}&generatedResumeId=${generated.id}&jobDescriptionId=${generated.jobDescription.id}`}
@@ -94,9 +103,16 @@ export default async function GeneratedDetailPage({
           <Card>
             <CardHeader>
               <CardTitle>Tailored resume</CardTitle>
+              {evidence.length > 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Every bullet links back to your master resume — click a{" "}
+                  <span className="font-medium text-emerald-600">Source</span> badge to see the
+                  verbatim text it was built from.
+                </p>
+              ) : null}
             </CardHeader>
             <CardContent className="p-6 pt-0 sm:p-8 sm:pt-0">
-              <ResumeView resume={content} />
+              <ResumeView resume={content} evidence={evidence} />
             </CardContent>
           </Card>
         </div>
