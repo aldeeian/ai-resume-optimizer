@@ -14,6 +14,13 @@ def _norm(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip().lower()
 
 
+def strip_invented_skills(source: ParsedResume, generated: ParsedResume) -> ParsedResume:
+    """Remove any skills the model invented that aren't in the source resume."""
+    src_skills = {_norm(s) for s in source.skills}
+    allowed = [s for s in generated.skills if _norm(s) in src_skills]
+    return generated.model_copy(update={"skills": allowed})
+
+
 def validate_generated_resume(source: ParsedResume, generated: ParsedResume) -> list[str]:
     """Return a list of violations (empty = truthful)."""
     violations: list[str] = []

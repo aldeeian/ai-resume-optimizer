@@ -36,6 +36,7 @@ from app.schemas import (
 )
 from app.security import require_api_key
 from app.truthfulness import (
+    strip_invented_skills,
     validate_generated_resume,
     validate_letter_numbers,
     verify_evidence,
@@ -199,12 +200,19 @@ async def generate(req: GenerateRequest) -> GenerateResponse:
         )
         violations = validate_generated_resume(req.resume, generated.content)
         if violations:
-            logger.error("Truthfulness violations after retry: %s", violations)
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Generation produced unverifiable content and was rejected: "
-                + "; ".join(violations[:5]),
-            )
+            skill_only = all(v.startswith("Added skill") for v in violations)
+            if skill_only:
+                logger.warning("Stripping %d invented skill(s) after retry: %s", len(violations), violations)
+                generated = generated.model_copy(
+                    update={"content": strip_invented_skills(req.resume, generated.content)}
+                )
+            else:
+                logger.error("Truthfulness violations after retry: %s", violations)
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Generation produced unverifiable content and was rejected: "
+                    + "; ".join(violations[:5]),
+                )
         evidence, uncovered = verify_evidence(req.resume, generated.content, generated.evidence)
         if uncovered:
             # Truthful but not fully cited — ship it with honest verified=false flags.

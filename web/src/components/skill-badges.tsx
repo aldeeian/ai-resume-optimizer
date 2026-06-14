@@ -16,8 +16,8 @@ export function SkillBadges({
   const hidden = skills.length - visible.length;
   return (
     <div className="flex flex-wrap gap-1.5">
-      {visible.map((skill) => (
-        <Badge key={skill} variant={variant}>
+      {visible.map((skill, i) => (
+        <Badge key={`${skill}-${i}`} variant={variant}>
           {skill}
         </Badge>
       ))}

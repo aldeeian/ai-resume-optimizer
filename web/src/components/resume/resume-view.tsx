@@ -1,6 +1,7 @@
 import { ExternalLink } from "lucide-react";
 
-import { EvidenceBullet, evidenceLookup } from "@/components/generated/evidence-bullet";
+import { EvidenceBullet } from "@/components/generated/evidence-bullet";
+import { evidenceLookup } from "@/lib/evidence-utils";
 import { SkillBadges } from "@/components/skill-badges";
 import { Separator } from "@/components/ui/separator";
 import type { BulletEvidence, ParsedResume } from "@/lib/schemas";
